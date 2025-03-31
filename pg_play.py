@@ -11,8 +11,8 @@ import ale_py
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--map_name', type=str, default='LunarLander-v3')
-    parser.add_argument('--folder', type=str, default='PPO')
+    parser.add_argument('--map_name', type=str, default='Pendulum-v1')
+    parser.add_argument('--folder', type=str, default='test')
     args = parser.parse_args()
 
     with open('config/games.yaml') as f:

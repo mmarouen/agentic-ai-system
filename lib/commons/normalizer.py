@@ -1,4 +1,5 @@
 import numpy as np
+import gymnasium as gym
 
 class ObsNormalize():
     def __init__(self, state_dim: int):
@@ -49,3 +50,17 @@ class ObsNormalize():
 
     def normalize(self, observation):
         return (observation - self.mean_) / (self.std_ + self.epsilon)
+
+    def warmup(self, test_env: gym.Env):
+        observations = []
+        for _ in range(100):
+            current_state, _ = test_env.reset()
+            observations.append(current_state)
+            while True:
+                action = test_env.action_space.sample()
+                new_obs, _, done, truncated, *_ = test_env.step(action)
+                observations.append(new_obs)
+                if done or truncated:
+                    break
+        test_env.close()
+        self.update(np.asarray(observations))

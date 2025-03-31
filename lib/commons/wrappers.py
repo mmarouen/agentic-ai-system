@@ -79,7 +79,7 @@ def make_env(env_id: int, is_atari: bool, record_video_freq: int, env_name: str,
                 tll=tll,
                 frame_stacking=frame_stacking,
                 render_mode=render_mode,
-                eval_mode=eval_mode
+                eval_mode=eval_mode,
                 **kwargs)
         else:
             env = gym.make(env_name, render_mode=render_mode, **kwargs)

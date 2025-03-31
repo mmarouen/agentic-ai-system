@@ -14,22 +14,22 @@ import ale_py
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--map_name', type=str, default='LunarLander-v3')
-    parser.add_argument('--steps_per_env', type=int, default=512) #128 for atari
+    parser.add_argument('--map_name', type=str, default='PongNoFrameskip-v4')
+    parser.add_argument('--steps_per_env', type=int, default=128) #128 for atari
     parser.add_argument('--video_record_freq', type=int, default=50_000)
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--lambda_', type=float, default=0.95)
     parser.add_argument('--seed', '-s', type=int, default=3)
     parser.add_argument('--num_envs', type=int, default=10)
-    parser.add_argument('--shared_network', type=bool, default=False)
+    parser.add_argument('--shared_network', type=bool, default=True)
     parser.add_argument('--steps_total', type=int, default=10_000_000)
     parser.add_argument('--algorithm', type=str, default='PPO')
     parser.add_argument('--epsilon', type=float, default=0.1)
-    parser.add_argument('--exp_name', type=str, default='PPO-separate-')
+    parser.add_argument('--exp_name', type=str, default='test')
     parser.add_argument('--exp_desc', type=str, default='')
     parser.add_argument('--train_value_iter', type=int, default=4) #5
     parser.add_argument('--train_policy_iter', type=int, default=4) #5
-    parser.add_argument('--lr_policy', type=float, default=1e-3) # 2.5*1e-4 for atari
+    parser.add_argument('--lr_policy', type=float, default=2.5*1e-4) # 2.5*1e-4 for atari
     parser.add_argument('--lr_value', type=float, default=2*1e-3) # 1e-5
     parser.add_argument('--entropy_init', type=float, default=1e-2)
     parser.add_argument('--entropy_final', type=float, default=1e-3)
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     writer = SummaryWriter(TENSORBOARD_FOLDER)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    env = gym.vector.SyncVectorEnv(
+    env = gym.vector.AsyncVectorEnv(
         [make_env(
             env_name=args.map_name,
             is_atari=is_atari,
@@ -79,15 +79,7 @@ if __name__ == "__main__":
     if not is_atari:
         eval_env = gym.make(args.map_name, render_mode="rgb_array")
     else:
-        eval_env = make_env(
-                args.map_name,
-                frame_skip=GAMES[args.map_name].get('frame_skip', 4),
-                tll=GAMES[args.map_name].get('terminal_on_life_loss', True),
-                frame_stacking=GAMES[args.map_name].get('frame_stacking', 4),
-                render_mode='rgb_array'
-            )
-        f_obs, _ = eval_env.reset()
-
+        eval_env = None
     policy_gradient(env, eval_env, logger=logger, is_atari=is_atari, device=device, writer=writer, solved_threshold=SOLVED_REWARD,
                     algorithm=args.algorithm, frame_skip_count=GAMES[args.map_name].get('frame_skip', 4), seed=args.seed, shared_net=args.shared_network,
                     gamma=args.gamma, lambda_=args.lambda_, epochs=args.total_epochs, steps_per_env=args.steps_per_env, train_value_iter=args.train_value_iter, 
