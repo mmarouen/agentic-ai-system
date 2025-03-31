@@ -4,7 +4,7 @@ import gymnasium as gym
 from typing import Union
 from scipy.signal import lfilter
 from dataclasses import dataclass, fields
-from .core import ObsNormalize
+from .normalizer import ObsNormalize
 
 def describe_env(env: gym.Env):
     actions_dim = None

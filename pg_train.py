@@ -5,28 +5,28 @@ import shutil
 import torch
 import multiprocessing
 from torch.utils.tensorboard import SummaryWriter
-from lib.algorithms import policy_gradient
-from lib.wrappers import make_env
-from lib.utils import Logger
+from lib.policy_gradients.algorithms import policy_gradient
+from lib.commons.utils import Logger
+from lib.commons.wrappers import make_env
 import ale_py
 
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--map_name', type=str, default='MountainCarContinuous-v0')
+    parser.add_argument('--map_name', type=str, default='LunarLander-v3')
     parser.add_argument('--steps_per_env', type=int, default=512) #128 for atari
     parser.add_argument('--video_record_freq', type=int, default=50_000)
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--lambda_', type=float, default=0.95)
     parser.add_argument('--seed', '-s', type=int, default=3)
     parser.add_argument('--num_envs', type=int, default=10)
-    parser.add_argument('--shared_network', type=bool, default=True)
+    parser.add_argument('--shared_network', type=bool, default=False)
     parser.add_argument('--steps_total', type=int, default=10_000_000)
     parser.add_argument('--algorithm', type=str, default='PPO')
     parser.add_argument('--epsilon', type=float, default=0.1)
-    parser.add_argument('--exp_name', type=str, default='PPO')
-    parser.add_argument('--exp_desc', type=str, default='same as 16, samestep env + decay entropy')
+    parser.add_argument('--exp_name', type=str, default='PPO-separate-')
+    parser.add_argument('--exp_desc', type=str, default='')
     parser.add_argument('--train_value_iter', type=int, default=4) #5
     parser.add_argument('--train_policy_iter', type=int, default=4) #5
     parser.add_argument('--lr_policy', type=float, default=1e-3) # 2.5*1e-4 for atari

@@ -3,15 +3,15 @@ from gymnasium.wrappers import RecordVideo
 import numpy as np
 import torch
 import yaml
-from lib.core import Policy, Agent
-from lib.utils import play_eval_step, describe_env
-from lib.wrappers import make_atari_env
+from lib.commons.agents import Agent
+from lib.commons.utils import play_eval_step, describe_env
+from lib.commons.wrappers import make_atari_env
 import ale_py
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--map_name', type=str, default='MountainCarContinuous-v0')
+    parser.add_argument('--map_name', type=str, default='LunarLander-v3')
     parser.add_argument('--folder', type=str, default='PPO')
     args = parser.parse_args()
 
@@ -34,11 +34,7 @@ if __name__ == "__main__":
         my_dict = yaml.safe_load(f)
     mean_obs = np.asarray(my_dict['observation_mean'])
     std_obs = np.asarray(my_dict['observation_std'])
-    shared_net = my_dict.get('is_shared', True)
-    if shared_net:
-        policy = Agent(state_dim=state_dim, action_dim=actions_dim, is_atari=is_atari, is_discrete=is_discrete).to(device)
-    else:
-        policy = Policy(state_dim=state_dim, action_dim=actions_dim, is_atari=is_atari, is_discrete=is_discrete).to(device)
+    policy = Agent(state_dim=state_dim, action_dim=actions_dim, is_atari=is_atari, is_discrete=is_discrete).to(device)
     policy.load_state_dict(torch.load(MODEL_FILE, map_location=device, weights_only=True))
 
     reward, steps = play_eval_step(

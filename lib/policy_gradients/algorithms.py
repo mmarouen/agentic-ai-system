@@ -7,8 +7,10 @@ from gymnasium.wrappers import RecordVideo
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import torch.optim as optim
-from lib.core import Policy, Value, calc_value_loss, ObsNormalize, calc_ppo_loss, Agent, calc_total_loss, calc_vpg_loss
-from lib.utils import Logger
+from .core import calc_value_loss, calc_ppo_loss, calc_total_loss, calc_vpg_loss
+from lib.commons.utils import Logger
+from lib.commons.normalizer import ObsNormalize
+from lib.commons.agents import Agent
 
 
 def policy_gradient(
@@ -60,11 +62,11 @@ def policy_gradient(
         optimizer = optim.Adam(agent.parameters(), lr=lr_policy, eps=1e-5)
     else:
         # policy network init
-        policy_net = Policy(state_dim, actions_dim, is_atari=is_atari, is_discrete=is_discrete).to(device)
+        policy_net = Agent(state_dim, actions_dim, is_atari=is_atari, is_discrete=is_discrete).to(device)
         logger.log_parameters('policy_nnet', str(policy_net))
         optimizer_policy = optim.Adam(policy_net.parameters(), lr=lr_policy)
         # value network init
-        value_net = Value(state_dim, is_atari=is_atari).to(device)
+        value_net = Agent(state_dim, actions_dim, is_atari=is_atari, is_discrete=is_discrete).to(device)
         logger.log_parameters('value_nnet', str(value_net))
         optimizer_value = optim.Adam(value_net.parameters(), lr=lr_value, eps=1e-5)
 
@@ -88,7 +90,7 @@ def policy_gradient(
         if entropy_init != 0.:
             current_entropy_coef = entropy_init - epoch * (entropy_init - entropy_final) / epochs
         current_learning_rate = (1.0 - (epoch - 1.0) / epochs) * lr_policy
-        if ppo:
+        if shared_net:
             optimizer.param_groups[0]["lr"] = current_learning_rate
         else:
             optimizer_policy.param_groups[0]["lr"] = current_learning_rate
