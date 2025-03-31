@@ -19,7 +19,7 @@ PongNoFrameskip-v4:
   frame_skip: 4
   reward: 19.5
   frame_stacking: 4
-  terminal_on_life_loss: True
+  terminal_on_life_loss: False
   atari: True
 ALE/BeamRider-v5:
   atari: True
