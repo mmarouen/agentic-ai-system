@@ -1,0 +1,27 @@
+Acrobot-v1: 
+  reward: -100
+CartPole-v1:
+  reward: 490
+MountainCarContinuous-v0:
+  reward: 80
+LunarLander-v3:
+  reward: 200
+Pendulum-v1:
+  reward: -200
+BipedalWalker-v3:
+  reward: 300 # 225 for vpg, 300 ppo 
+  episode_max_length: 2000
+MountainCar-v0:
+  reward: -110
+HalfCheetah-v5:
+  reward: 4500 # 2000 for vpg, 4000 for ppo
+PongNoFrameskip-v4:
+  frame_skip: 4
+  reward: 19.5
+  frame_stacking: 4
+  terminal_on_life_loss: True
+  atari: True
+ALE/BeamRider-v5:
+  atari: True
+  reward: 3000
+  terminal_on_life_loss: True
