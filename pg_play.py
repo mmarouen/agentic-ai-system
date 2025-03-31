@@ -3,7 +3,7 @@ from gymnasium.wrappers import RecordVideo
 import numpy as np
 import torch
 import yaml
-from lib.commons.agents import Agent
+from lib.policy_gradients.agents import Agent
 from lib.commons.utils import play_eval_step, describe_env
 from lib.commons.wrappers import make_atari_env
 import ale_py

@@ -6,12 +6,11 @@ import gymnasium as gym
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import torch.optim as optim
-from .core import (calc_value_loss, calc_ppo_loss,
-                   calc_total_loss, calc_vpg_loss,
-                   rollout, RolloutInfo, learn)
+from .core import rollout, RolloutInfo, learn
+from .losses import calc_ppo_loss, calc_total_loss, calc_value_loss, calc_vpg_loss
 from lib.commons.utils import Logger
 from lib.commons.normalizer import ObsNormalize
-from lib.commons.agents import Agent
+from .agents import Agent
 
 
 def policy_gradient(
