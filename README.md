@@ -61,10 +61,6 @@ To use the trained agent with PPO or VPG run:
 ```bash
 python pg_play.py --folder ppo-test --map-name CartPole-v1
 ```
-For VPG:
-```bash
-python pg_train.py --algorithm vpg --map-name LunarLander-v2
-```
 For DQN:
 ```bash
 python dqn_train.py --algorithm dqn --map-name PongNoFrameskip-v4
