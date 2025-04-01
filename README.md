@@ -81,7 +81,6 @@ Below are reward curves for selected games and algorithms:
 
 Additional results are available in the [`results/`](./results/) folder.
 
-Additional results are available in the results/ folder.
 ## Features
 ✅ Custom RL framework based on `gymnasium` and PyTorch  
 ✅ Supports both discrete and continuous action spaces (PPO & VPG)  
