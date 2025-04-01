@@ -2,8 +2,10 @@ import numpy as np
 import torch
 import gymnasium as gym
 from typing import Union
+import psutil
+import gc
+import os
 from scipy.signal import lfilter
-from dataclasses import dataclass, fields
 from .normalizer import ObsNormalize
 
 def describe_env(env: gym.Env):
@@ -59,167 +61,24 @@ def reshape_reward(map_name: str, reward: Union[float, np.ndarray]):
 def discount_cumsum_lfilter(rewards, gamma: float):
     return lfilter([1], [1, -gamma], rewards[::-1], axis=0)[::-1]
 
-@dataclass
-class Experience:
-    action: np.ndarray
-    value: float
-    reward: float
-    normal_reward: float
-    state: np.ndarray
-    log_prob: float = 0.
-    reward_to_go: float = None
-    advantage: float = None
-    entropy: float = None
-
-    def __iter__(self):
-        return (getattr(self, f.name) for f in fields(self))
-
-@dataclass
-class Episode:
-    action_dims: int
-    state_dims: tuple
-    is_discrete: bool
-    sum_entropies: float = 0.
-    sum_rewards: float = 0.
-    sum_shaped_rewards: float = 0.
-    n_steps: int = 0
-    sum_adv: float = 0
-    sum_adv2: float = 0
-    sum_values: float = 0
-    sum_values2: float = 0
-
-    def update(self, experience: Experience):
-        if self.n_steps == 0:
-            if self.is_discrete:
-                self.actions = np.empty(10_000, dtype=np.int32)  # 1D array for discrete
-                self.sum_actions = np.zeros(1, dtype=np.float32)
-                self.sum_actions2 = np.zeros(1, dtype=np.float32)
-            else:
-                self.actions = np.empty((10_000, self.action_dims), dtype=np.float32)
-                self.sum_actions = np.zeros(self.action_dims, dtype=np.float32)
-                self.sum_actions2 = np.zeros(self.action_dims, dtype=np.float32)
-            self.states = np.empty((10_000,) + self.state_dims, dtype=np.float32)
-            self.log_probs = np.empty((10_000,), dtype=np.float32)
-            self.rewards = np.empty((10_000,), dtype=np.float32)
-            self.values = np.empty((10_000,), dtype=np.float32)
-            self.advantages = np.empty((10_000,), dtype=np.float32)
-
-        self.rewards[self.n_steps] = experience.reward
-        self.values[self.n_steps] = experience.value
-        self.actions[self.n_steps] = experience.action
-        self.states[self.n_steps] = experience.state
-        self.log_probs[self.n_steps] = experience.log_prob
-        self.sum_entropies += experience.entropy
-        self.sum_rewards += experience.normal_reward
-        self.sum_shaped_rewards += experience.reward
-        self.sum_values += experience.value
-        self.sum_values2 += experience.value ** 2
-        self.sum_actions += experience.action
-        self.sum_actions2 += experience.action ** 2
-        self.n_steps += 1
-
-    def close(self, gamma:float, lam: float, last_value: float):
-        rewards = np.append(self.rewards[:self.n_steps], last_value)
-        values = np.append(self.values[:self.n_steps], last_value)
-        deltas = rewards[:-1] + gamma * values[1:] - values[:-1]
-        reward_togo = discount_cumsum_lfilter(rewards, gamma)[:-1]
-        self.advantages = discount_cumsum_lfilter(deltas, gamma * lam)
-        self.sum_adv2 = sum(self.advantages ** 2)
-        self.sum_adv = sum(self.advantages)
-        return self.advantages, reward_togo, self.actions[:self.n_steps], self.states[:self.n_steps], self.log_probs[:self.n_steps], self.values[:self.n_steps]
+def clear_memory(threshold_gb=6.0, cpu_memory_threshold_mb=20_000):
+    """Clears GPU cache if reserved memory exceeds the given threshold."""
+    reserved_gb = torch.cuda.memory_reserved() / 1e9  # Convert bytes to GB
+    allocated_gb = torch.cuda.memory_allocated() / 1e9  # Bytes to GB
     
-@dataclass
-class Batch:
-    action_dim: int
-    state_dim: tuple
-    is_discrete: bool
-    average_entropy: float = 0
-    average_reward: float = 0
-    average_shaped_reward: float = 0
-    m_advantage: float = 0
-    sum_advantage2: float = 0
-    n_steps: int = 0
-    sum_values: float = 0
-    sum_values2: float = 0
-    gamma: float = 0
-    lam: float = 0
-    n_episodes: int = 0
-    max_reward = -1e6
-    min_reward = 1e6
-
-    def _update_adv_stats(self, mini_sum, mini_s2, mini_n):
-        n_new = self.n_steps + mini_n
-        mini_mean = mini_sum / mini_n
-        mini_var = mini_s2 / mini_n - (mini_sum / mini_n) ** 2
-        delta = mini_mean - self.m_advantage
-        self.sum_advantage2 += mini_var * mini_n + self.n_steps * mini_n * delta ** 2 / n_new
-        self.m_advantage = (self.n_steps * self.m_advantage + mini_n * mini_mean) / n_new
-
-    def update(self, episode: Episode, last_val: float = 0.):
-        if self.n_steps == 0:
-            if self.is_discrete:
-                self.actions = np.empty(100_000, dtype=np.int32)  # 1D array for discrete
-                self.sum_actions = np.zeros(1, dtype=np.float32)
-                self.sum_actions2 = np.zeros(1, dtype=np.float32)
-            else:
-                self.actions = np.empty((100_000, self.action_dim), dtype=np.float32)
-                self.sum_actions = np.zeros(self.action_dim, dtype=np.float32)
-                self.sum_actions2 = np.zeros(self.action_dim, dtype=np.float32)
-
-            self.states = np.empty((100_000,) + self.state_dim, dtype=np.float32)
-            self.advantages = np.empty((100_000, ), dtype=np.float32)
-            self.reward_tg = np.empty((100_000, ), dtype=np.float32)
-            self.log_probs = np.empty((100_000, ), dtype=np.float32)
-            self.rewards = np.empty((100_000,), dtype=np.float32)
-            self.values = np.empty((100_000, ), dtype=np.float32)
-
-        adv, rtg, act, stat, logp, vals = episode.close(self.gamma, self.lam, last_value=last_val)
-        self.advantages[self.n_steps: self.n_steps + episode.n_steps] = adv
-        self.reward_tg[self.n_steps: self.n_steps + episode.n_steps] = rtg
-        self.states[self.n_steps: self.n_steps + episode.n_steps] = stat
-        self.actions[self.n_steps: self.n_steps + episode.n_steps] = act
-        self.log_probs[self.n_steps: self.n_steps + episode.n_steps] = logp
-        self.values[self.n_steps: self.n_steps + episode.n_steps] = vals
-
-        # self.episodes.append(episode)
-        self._update_adv_stats(episode.sum_adv, episode.sum_adv2, episode.n_steps)
-        self.average_shaped_reward += episode.sum_shaped_rewards
-        self.average_entropy += episode.sum_entropies / episode.n_steps
-        self.average_reward += episode.sum_rewards
-        self.n_steps += episode.n_steps
-        self.sum_values += episode.sum_values
-        self.sum_values2 += episode.sum_values2
-        self.sum_actions += episode.sum_actions
-        self.sum_actions2 += episode.sum_actions2
-        self.max_reward = max(episode.sum_rewards, self.max_reward)
-        self.min_reward = min(episode.sum_rewards, self.min_reward)
-        self.rewards[self.n_episodes] = episode.sum_rewards
-        self.n_episodes += 1
-
-    def get_normalization_stats(self):
-        return self.m_advantage, np.sqrt(self.sum_advantage2 / (self.n_steps - 1))
-
-    def get_summary(self):
-        d = {}
-        d["batch size"] = self.n_steps
-        d["episodes per epoch"] = self.n_episodes
-        d["ave reward"] = self.average_reward / self.n_episodes
-        d["max reward"] = self.max_reward
-        d["min reward"] = self.min_reward
-        d["ave reward (shaped)"] = self.average_shaped_reward / self.n_episodes
-        d["ave entropy"] = self.average_entropy / self.n_episodes
-        d["ave value"] = self.sum_values / self.n_steps
-        d["std value"] = np.sqrt(self.sum_values2 / self.n_steps - d["ave value"] ** 2)
-        d["ave action"] = self.sum_actions / self.n_steps
-        d["std action"] = np.sqrt(self.sum_actions2 / self.n_steps - d["ave action"] ** 2)
-        return d
-
-    def get(self):
-        # return self.advantages[:self.n_steps], self.reward_tg[:self.n_steps], self.actions[:self.n_steps], self.states[:self.n_steps], self.log_probs[:self.n_steps], self.values[:self.n_steps]
-        return self.advantages[:self.n_steps], self.reward_tg[:self.n_steps], self.actions[:self.n_steps], self.states[:self.n_steps], self.log_probs[:self.n_steps], self.values[:self.n_steps]
+    if reserved_gb > threshold_gb:
+        gc.collect()
+        torch.cuda.empty_cache()
+        print(f"GPU Memory cleared! Reserved: {reserved_gb:.2f} GB, Allocated: {allocated_gb:.2f} GB")
+    process = psutil.Process(os.getpid())
+    mem_usage_mb = process.memory_info().rss / (1024 * 1024)
+    # print(f'current memory usage {mem_usage_mb} MB')
+    if mem_usage_mb > cpu_memory_threshold_mb:
+        gc.collect()
+        print(f"CPU memory usage {mem_usage_mb:.2f} MB exceeds {cpu_memory_threshold_mb} MB, triggering gc.collect()")
 
 class Logger:
-    def __init__(self, policy_model_path: str, value_net_path: str, normalizer_path: str, log_file: str):
+    def __init__(self, policy_model_path: str, log_file: str, value_net_path: str=None, normalizer_path: str=None):
         self.policy_model_path = policy_model_path
         self.value_net_path = value_net_path
         self.normalizer_path = normalizer_path
@@ -230,6 +89,7 @@ class Logger:
         self.max_abs_reward = -1000
         self.argmax_abs_epoch = 0
         self.argmax_abs_steps = 0
+        self.n_finished_episodes = 0
         open(log_file, 'a').close()
 
     def log_gradients(self, model: torch.nn.Module):
@@ -276,12 +136,13 @@ class Logger:
         torch.save(policy_model.state_dict(), self.policy_model_path)
         if value_model:
             torch.save(value_model.state_dict(), self.value_net_path)
-        obs_mean, obs_std = normalizer.get_stats()
-        config_dict = {
-            'observation_mean': obs_mean.tolist(),
-            'observation_std': obs_std.tolist(),
-            'is_shared': is_shared
-        }
-        import yaml
-        with open(self.normalizer_path, 'w') as outfile:
-            yaml.dump(config_dict, outfile, default_flow_style=False)
+        if normalizer:
+            obs_mean, obs_std = normalizer.get_stats()
+            config_dict = {
+                'observation_mean': obs_mean.tolist(),
+                'observation_std': obs_std.tolist(),
+                'is_shared': is_shared
+            }
+            import yaml
+            with open(self.normalizer_path, 'w') as outfile:
+                yaml.dump(config_dict, outfile, default_flow_style=False)

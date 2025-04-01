@@ -14,7 +14,7 @@ import ale_py
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--map_name', type=str, default='PongNoFrameskip-v4')
+    parser.add_argument('--map_name', type=str, default='Acrobot-v1')
     parser.add_argument('--steps_per_env', type=int, default=128) #128 for atari
     parser.add_argument('--video_record_freq', type=int, default=50_000)
     parser.add_argument('--gamma', type=float, default=0.99)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         shutil.rmtree(ROOT_NAME)
     os.mkdir(ROOT_NAME)
     # if args.video_record_freq > 0: os.mkdir(VIDEO_FOLDER)
-    logger = Logger(POLICY_MODEL_FILE, VALUE_MODEL_FILE, normalizer_path=CONFIG_FILE, log_file=LOG_FILE)
+    logger = Logger(policy_model_path=POLICY_MODEL_FILE, value_net_path=VALUE_MODEL_FILE, normalizer_path=CONFIG_FILE, log_file=LOG_FILE)
     logger.log_parameters('Input params', args.__dict__)
     writer = SummaryWriter(TENSORBOARD_FOLDER)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
