@@ -11,7 +11,7 @@ import ale_py
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--map_name', type=str, default='Pendulum-v1')
+    parser.add_argument('--map-name', type=str, default='Acrobot-v1')
     parser.add_argument('--folder', type=str, default='test')
     args = parser.parse_args()
 

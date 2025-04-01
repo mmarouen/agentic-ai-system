@@ -14,25 +14,25 @@ import ale_py
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--map_name', type=str, default='Acrobot-v1')
-    parser.add_argument('--steps_per_env', type=int, default=128) #128 for atari
-    parser.add_argument('--video_record_freq', type=int, default=50_000)
+    parser.add_argument('--map-name', type=str, default='Acrobot-v1')
+    parser.add_argument('--steps-per-env', type=int, default=128) #128 for atari
+    parser.add_argument('--video-record-freq', type=int, default=50_000)
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--lambda_', type=float, default=0.95)
     parser.add_argument('--seed', '-s', type=int, default=3)
-    parser.add_argument('--num_envs', type=int, default=10)
-    parser.add_argument('--shared_network', type=bool, default=True)
-    parser.add_argument('--steps_total', type=int, default=10_000_000)
-    parser.add_argument('--algorithm', type=str, default='PPO')
+    parser.add_argument('--num-envs', type=int, default=10)
+    parser.add_argument('--shared-network', type=bool, default=True)
+    parser.add_argument('--total-steps', type=int, default=10_000_000)
+    parser.add_argument('--algorithm', type=str, default='ppo')
     parser.add_argument('--epsilon', type=float, default=0.1)
-    parser.add_argument('--exp_name', type=str, default='test')
-    parser.add_argument('--exp_desc', type=str, default='')
-    parser.add_argument('--train_value_iter', type=int, default=4) #5
-    parser.add_argument('--train_policy_iter', type=int, default=4) #5
-    parser.add_argument('--lr_policy', type=float, default=2.5*1e-4) # 2.5*1e-4 for atari
-    parser.add_argument('--lr_value', type=float, default=2*1e-3) # 1e-5
-    parser.add_argument('--entropy_init', type=float, default=1e-2)
-    parser.add_argument('--entropy_final', type=float, default=1e-3)
+    parser.add_argument('--exp-name', type=str, default='test')
+    parser.add_argument('--exp-desc', type=str, default='')
+    parser.add_argument('--train-value-iter', type=int, default=4) #5
+    parser.add_argument('--train-policy-iter', type=int, default=4) #5
+    parser.add_argument('--lr-policy', type=float, default=2.5*1e-4) # 2.5*1e-4 for atari
+    parser.add_argument('--lr-value', type=float, default=2*1e-3) # 1e-5
+    parser.add_argument('--entropy-init', type=float, default=1e-2)
+    parser.add_argument('--entropy-final', type=float, default=1e-3)
 
     args = parser.parse_args()
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         GAMES = yaml.safe_load(f)
     SOLVED_REWARD = GAMES[args.map_name]['reward']
     args.steps_per_epoch = args.steps_per_env * args.num_envs
-    args.total_epochs = args.steps_total // args.steps_per_epoch + 1
+    args.total_epochs = args.total_steps // args.steps_per_epoch + 1
     is_atari = GAMES[args.map_name].get('atari', False)
     args.num_envs = min(multiprocessing.cpu_count() * 2, args.num_envs)
     map_name = args.map_name.replace(r'/', '-')

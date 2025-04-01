@@ -13,9 +13,9 @@ from lib.qlearn.algorithms import dqn
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--map-name', type=str, default='Acrobot-v1')
+    parser.add_argument('--map-name', type=str, default='LunarLander-v3')
     parser.add_argument('--video-record_freq', type=int, default=20_000)
-    parser.add_argument('--exp-name', type=str, default='DQN-test')
+    parser.add_argument('--exp-name', type=str, default='DQN')
     parser.add_argument('--exp-desc', type=str, default='')
     parser.add_argument('--seed', '-s', type=int, default=3)
     parser.add_argument('--total-steps', type=int, default=10_000_000)

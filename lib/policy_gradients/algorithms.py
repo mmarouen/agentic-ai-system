@@ -30,7 +30,7 @@ def policy_gradient(
 
     num_minibatches = 4
     minibatch_size = int(steps_per_env * main_env.num_envs / num_minibatches)
-    ppo = algorithm == 'PPO'
+    ppo = algorithm == 'ppo'
     if not ppo:
         train_policy_iter = 1
         train_value_iter = 1
