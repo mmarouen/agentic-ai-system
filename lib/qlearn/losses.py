@@ -34,4 +34,4 @@ def calc_loss(batch, net, tgt_net, beta, buffer_size, sum_priorities, d_dqn, per
         loss_scalar = nn.MSELoss()(state_action_values, expected_state_action_values)
         # loss_scalar = nn.L1Loss()(state_action_values, expected_state_action_values)
 
-    return loss_scalar, losses
+    return loss_scalar, losses, actions_v.detach().cpu().numpy()

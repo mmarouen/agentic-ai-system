@@ -65,17 +65,16 @@ def clear_memory(threshold_gb=6.0, cpu_memory_threshold_mb=20_000):
     """Clears GPU cache if reserved memory exceeds the given threshold."""
     reserved_gb = torch.cuda.memory_reserved() / 1e9  # Convert bytes to GB
     allocated_gb = torch.cuda.memory_allocated() / 1e9  # Bytes to GB
-    
-    if reserved_gb > threshold_gb:
-        gc.collect()
-        torch.cuda.empty_cache()
-        print(f"GPU Memory cleared! Reserved: {reserved_gb:.2f} GB, Allocated: {allocated_gb:.2f} GB")
     process = psutil.Process(os.getpid())
     mem_usage_mb = process.memory_info().rss / (1024 * 1024)
-    # print(f'current memory usage {mem_usage_mb} MB')
-    if mem_usage_mb > cpu_memory_threshold_mb:
+    memory_clear_msg = 'No memory was cleared'
+    if reserved_gb > threshold_gb or mem_usage_mb > cpu_memory_threshold_mb:
+        memory_clear_msg = f"CPU memory usage {mem_usage_mb:.2f} MB exceeds {cpu_memory_threshold_mb} MB, triggering gc.collect()"
         gc.collect()
-        print(f"CPU memory usage {mem_usage_mb:.2f} MB exceeds {cpu_memory_threshold_mb} MB, triggering gc.collect()")
+        if reserved_gb > threshold_gb:
+            torch.cuda.empty_cache()
+        memory_clear_msg += f"\nGPU Memory cleared! Reserved: {reserved_gb:.2f} GB, Allocated: {allocated_gb:.2f} GB"
+    return memory_clear_msg
 
 class Logger:
     def __init__(self, policy_model_path: str, log_file: str, value_net_path: str=None, normalizer_path: str=None):

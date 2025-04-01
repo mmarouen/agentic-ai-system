@@ -3,7 +3,8 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from lib.commons.nnet import CoreNet
-from .utils import Experience, ExperienceBuffer
+from lib.commons.normalizer import ObsNormalize
+from .buffers import Experience, ExperienceBuffer
 
 class DQN(CoreNet):
     def __init__(self, state_dim, action_dim, is_atari: bool, is_discrete: bool = False, hidden_states: int = 64):
@@ -12,7 +13,7 @@ class DQN(CoreNet):
         self.init_linear_layers()
 
 class Agent:
-    def __init__(self, env, exp_buffer: ExperienceBuffer, gamma: float, n_steps: int):
+    def __init__(self, env, exp_buffer: ExperienceBuffer, gamma: float, n_steps: int, normalizer: ObsNormalize, is_atari: bool):
         self.env = env
         self.exp_buffer = exp_buffer
         self.steps = 0
@@ -21,6 +22,10 @@ class Agent:
         self.max_reward_freq = 0
         self.n_steps = n_steps
         self.gamma = gamma
+        self.normalizer = normalizer
+        self.is_atari = is_atari
+        if not is_atari:
+            self.normalizer.unfreeze()
         self._reset()
 
     def _reset(self, **kwargs):
@@ -40,7 +45,7 @@ class Agent:
             action, new_state, is_done, is_terminated, reward = self.play_step(net, epsilon, device)
             if step == 0:
                 action_0 = action
-            stored_reward += reward * (self.gamma ** step)
+            stored_reward += np.clip(reward, -1, 1) * (self.gamma ** step)
             self.total_reward += reward
             if is_terminated:
                 exp = Experience(
@@ -74,11 +79,13 @@ class Agent:
 
         # do step in the environment
         new_state, reward, is_done, is_truncated, _ = self.env.step(action)
+        new_state = self.normalizer.normalize(new_state) if self.is_atari else new_state
+        self.normalizer.update(np.expand_dims(new_state, 0))
         if reward > self.max_reward:
             self.max_reward = reward
             self.max_reward_freq = 1
         elif reward == self.max_reward:
             self.max_reward_freq += 1
-        self.total_steps += 1
+        self.steps += 1
         self.episode_length += 1
         return action, new_state, is_done, is_truncated or is_done, reward
