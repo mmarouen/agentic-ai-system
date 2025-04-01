@@ -15,7 +15,7 @@ The implementation supports:
 
 ## Installation
 ### Prerequisites
-Ensure you have Python 3.8+ installed. Then, install the dependencies:
+Ensure you have Python 3.11+ installed. Then, install the dependencies:
 
 ```bash
 pip install -r requirements.txt
