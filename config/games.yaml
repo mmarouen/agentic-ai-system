@@ -24,4 +24,15 @@ PongNoFrameskip-v4:
 ALE/BeamRider-v5:
   atari: True
   reward: 3000
+  frame_stacking: 4
+  frame_skip: 4
   terminal_on_life_loss: True
+ALE/Riverraid-v5:
+  atari: True
+  reward: 20_000
+  terminal_on_life_loss: True
+ALE/SpaceInvaders-v5:
+  atari: True
+  reward: 500
+  terminal_on_life_loss: True
+
