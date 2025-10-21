@@ -19,7 +19,7 @@ def dqn(
         buffer_size: int, per_alpha: float,  per: bool, d_dqn: bool,
         gamma: float, n_steps: int, learning_rate: float,
         epsilon_start: float, total_steps: int, epsilon_final: float=0.01, 
-        batch_size: int=64, warmup_steps: int=20_000, train_freq: int=4, 
+        batch_size: int=64, warmup_steps: int=20_000, train_freq: int=1, 
         per_beta_update_freq: int=1000, per_beta_update_frequency: int=1000,
         per_beta_steps: int=100_000, per_beta: float = 0.4, reward_window: int=100,
         epsilon_decay_steps: int=300_000, sync_target_net_steps: int = 10_000, clipping_range: float=10
@@ -68,9 +68,9 @@ def dqn(
     start_training = step = agent.steps
 
     logger.log_parameters(f'Step {agent.steps:,}', 'Finished warmup')
-    epsilon_decay_steps = 300_000 if is_atari else 100_000
-    sync_target_net_steps = 10_000 if is_atari else 1000
-    clipping_range = 10. if is_atari else 1.
+    epsilon_decay_steps = 300_000 if (is_atari or actions_dim >= 4) else 100_000
+    sync_target_net_steps = 10_000 if (is_atari or actions_dim >= 4) else 1000
+    clipping_range = 10. if is_atari else 5.
     while step < total_steps:
         net.train()
         log_header = f'Step {agent.steps:,}'
@@ -97,7 +97,7 @@ def dqn(
                 logger.log_parameters(log_header, reward_update)
                 logger.save(policy_model=net, normalizer=normalizer)
                 logger.max_ave_reward = np.mean(total_rewards)
-                logger.argmax_abs_steps = step
+                logger.argmax_ave_steps = step
             if logger.max_ave_reward >= solved_threshold:
                 close_msg = f'Best score {logger.max_ave_reward} reached within {logger.argmax_abs_steps} steps, {logger.n_finished_episodes} episodes'
                 logger.log_parameters(log_header, close_msg)

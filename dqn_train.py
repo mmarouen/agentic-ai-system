@@ -15,8 +15,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--map-name', type=str, default='LunarLander-v3')
     parser.add_argument('--video-record_freq', type=int, default=20_000)
-    parser.add_argument('--exp-name', type=str, default='DQN')
-    parser.add_argument('--exp-desc', type=str, default='')
+    parser.add_argument('--exp-name', type=str, default='DQN-1')
+    parser.add_argument('--exp-desc', type=str, default='ddqn-3steps')
     parser.add_argument('--seed', '-s', type=int, default=3)
     parser.add_argument('--total-steps', type=int, default=10_000_000)
     parser.add_argument('--gamma', type=float, default=0.99)
@@ -42,7 +42,6 @@ if __name__ == "__main__":
     if os.path.exists(ROOT_NAME):
         shutil.rmtree(ROOT_NAME)
     os.mkdir(ROOT_NAME)
-
 
     with open('config/games.yaml') as f:
         GAMES = yaml.safe_load(f)
